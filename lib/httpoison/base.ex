@@ -100,7 +100,7 @@ defmodule HTTPoison.Base do
 
       @spec process_request_url(Request.t) :: String.t
       def process_request_url(%Request{url: url}) do
-        HTTPoison.Base.default_process_url(url)
+        HTTPoison.Base.default_process_url(to_string(url))
       end
 
       @spec process_request_headers(Request.t) :: headers
@@ -121,7 +121,7 @@ defmodule HTTPoison.Base do
       ## Response processors
 
       @spec process_response(Response.t) :: any
-      def process_response(%Response{} = response), do: response
+      def process_response(%Response{} = response), do: {:ok, response}
 
       @spec process_response_headers(headers) :: any
       def process_response_headers(headers), do: headers
@@ -219,9 +219,9 @@ defmodule HTTPoison.Base do
       defp request_url(url, []), do: url
       defp request_url(url, params) do
         cond do
-          Map.size(params) === 0 -> url
-          URI.parse(url).query   -> url <> "&" <> URI.encode_query(params)
-          true                   -> url <> "?" <> URI.encode_query(params)
+          Enum.count(params) === 0 -> url
+          URI.parse(url).query     -> url <> "&" <> URI.encode_query(params)
+          true                     -> url <> "?" <> URI.encode_query(params)
         end
       end
 
@@ -576,11 +576,11 @@ defmodule HTTPoison.Base do
   end
 
   defp response(process_response, process_status_code, process_headers, process_body, status_code, headers, body, request) do
-    {:ok, %Response{
+    %Response{
       status_code: process_status_code.(status_code),
       headers: process_headers.(headers),
       body: process_body.(body),
       request: request
-    } |> process_response.()}
+    } |> process_response.()
   end
 end
