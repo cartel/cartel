@@ -39,10 +39,10 @@ defmodule HTTPoisonBaseTest do
   defmodule ExampleRetry do
     use HTTPoison.Base
     def process_request_options(%HTTPoison.Request{options: options}) do
-      Keyword.update(options, :try_count, 0, &(&1 + 1))
+      Keyword.update(options, :try_count, 1, &(&1 + 1))
     end
     def process_response(%HTTPoison.Response{request: request} = response) do
-      tries = Keyword.get(request.options, :try_count, 0)
+      tries = Keyword.get(request.options, :try_count, 1)
       max_tries = Keyword.get(request.options, :max_tries, false)
       case response do
         %{status_code: 429} -> retry(request, max_tries, tries)
@@ -153,7 +153,40 @@ defmodule HTTPoisonBaseTest do
     assert validate :hackney
   end
 
-  test "request body retries too many times" do
+  test "request body with retries" do
+    req =
+      %HTTPoison.Request{
+        method: :get,
+        url: "http://localhost",
+        headers: [],
+        body: "",
+        params: %{},
+        options: [max_tries: 3, try_count: 3]
+      }
+
+    expect(:hackney, :request, [{
+      [req.method, req.url, req.headers, req.body, []],
+      loop([
+        {:ok, 429, "headers", :client},
+        {:ok, 429, "headers", :client},
+        {:ok, 200, "headers", :client}
+      ])
+    }])
+
+    expect(:hackney, :body, 1, {:ok, "response"})
+
+    assert ExampleRetry.get!("localhost", [], %{}, max_tries: 3) ==
+      %HTTPoison.Response{
+        status_code: 200,
+        headers: "headers",
+        body: "response",
+        request: req
+      }
+
+    assert validate :hackney
+  end
+
+  test "request body retries too many times raises error" do
     req =
       %HTTPoison.Request{
         method: :get,
@@ -171,8 +204,9 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert ExampleRetry.get("localhost", [], %{}, max_tries: 3) ==
-      {:error, %HTTPoison.Error{reason: "too many tries [3 of 3]"}}
+    assert_raise HTTPoison.Error, "\"too many tries [3 of 3]\"", fn ->
+      ExampleRetry.get!("localhost", [], %{}, max_tries: 3)
+    end
 
     assert validate :hackney
   end
