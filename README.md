@@ -12,7 +12,7 @@ Until this [issue](https://bugs.erlang.org/browse/ERL-192) is fixed ssl handshak
 ```
 Try the following fix:
 ```elixir
-HTTPoison.get("https://example.com/", [], [ ssl: [{:versions, [:'tlsv1.2']}] ])
+HTTPoison.get("https://example.com/", [], %{}, ssl: [{:versions, [:'tlsv1.2']}])
 ```
 
 ## But... why something so similar to HTTPotion?
@@ -42,8 +42,8 @@ end
 ## Usage
 
 ```elixir
-iex> HTTPoison.start
-iex> HTTPoison.get! "http://httparrot.herokuapp.com/get"
+iex> HTTPoison.start()
+iex> HTTPoison.get!("http://httparrot.herokuapp.com/get")
 %HTTPoison.Response{
   body: "{\n  \"args\": {},\n  \"headers\": {} ...",
   headers: [{"Connection", "keep-alive"}, {"Server", "Cowboy"},
@@ -51,12 +51,12 @@ iex> HTTPoison.get! "http://httparrot.herokuapp.com/get"
   {"Content-Type", "application/json"}, {"Via", "1.1 vegur"}],
   status_code: 200
 }
-iex> HTTPoison.get! "http://localhost:1"
+iex> HTTPoison.get!("http://localhost:1")
 ** (HTTPoison.Error) :econnrefused
-iex> HTTPoison.get "http://localhost:1"
+iex> HTTPoison.get("http://localhost:1")
 {:error, %HTTPoison.Error{id: nil, reason: :econnrefused}}
 
-iex> HTTPoison.post "http://httparrot.herokuapp.com/post", "{\"body\": \"test\"}", [{"Content-Type", "application/json"}]
+iex> HTTPoison.post("http://httparrot.herokuapp.com/post", "{\"body\": \"test\"}", [{"Content-Type", "application/json"}])
 {:ok, %HTTPoison.Response{body: "{\n  \"args\": {},\n  \"headers\": {\n    \"host\": \"httparrot.herokuapp.com\",\n    \"connection\": \"close\",\n    \"accept\": \"application/json\",\n    \"content-type\": \"application/json\",\n    \"user-agent\": \"hackney/1.6.1\",\n    \"x-request-id\": \"4b85de44-6227-4480-b506-e3b9b4f0318a\",\n    \"x-forwarded-for\": \"76.174.231.199\",\n    \"x-forwarded-proto\": \"http\",\n    \"x-forwarded-port\": \"80\",\n    \"via\": \"1.1 vegur\",\n    \"connect-time\": \"1\",\n    \"x-request-start\": \"1475945832992\",\n    \"total-route-time\": \"0\",\n    \"content-length\": \"16\"\n  },\n  \"url\": \"http://httparrot.herokuapp.com/post\",\n  \"origin\": \"10.180.37.142\",\n  \"form\": {},\n  \"data\": \"{\\\"body\\\": \\\"test\\\"}\",\n  \"json\": {\n    \"body\": \"test\"\n  }\n}",
     headers: [{"Connection", "keep-alive"}, {"Server", "Cowboy"},
     {"Date", "Sat, 08 Oct 2016 16:57:12 GMT"}, {"Content-Length", "681"},
@@ -69,13 +69,44 @@ You can also easily pattern match on the `HTTPoison.Response` struct:
 ```elixir
 case HTTPoison.get(url) do
   {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-    IO.puts body
+    IO.puts(body)
+
   {:ok, %HTTPoison.Response{status_code: 404}} ->
-    IO.puts "Not found :("
+    IO.puts("Not found ಥ_ಥ")
+
   {:error, %HTTPoison.Error{reason: reason}} ->
-    IO.inspect reason
+    IO.inspect(reason)
 end
 ```
+
+Using `HTTPoison.Request` structs:
+
+```elixir
+request =
+  %HTTPoison.Request{
+    method: :post,
+    url: "http://httparrot.herokuapp.com/post",
+    body: "{\"body\": \"test\"}",
+    headers: [{"Content-Type", "application/json"}]
+  }
+
+case HTTPoison.request(request) do
+  {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+    IO.puts(body)
+
+  {:ok, %HTTPoison.Response{status_code: 429}} ->
+    :timer.sleep(1000)
+    IO.puts("Trying one more time...")
+    HTTPoison.request(request)
+
+  {:ok, %HTTPoison.Response{status_code: 404}} ->
+    IO.puts("Not found ಥ_ಥ")
+
+  {:error, %HTTPoison.Error{reason: reason}} ->
+    IO.inspect(reason)
+end
+```
+
 ### Options
 
 There are a number of supported options(*not to be confused with the HTTP options method*), documented [here](https://hexdocs.pm/httpoison/HTTPoison.html#request/5), that can be added to your request. The example below shows the use of the `:ssl` and `:recv_timeout` options for a post request to an api that requires a bearer token. The `:ssl` option allows you to set options accepted by th [Erlang SSL module](http://erlang.org/doc/man/ssl.html), and `:recv_timeout` sets a timeout on receiving a response, the default is 5000ms.
@@ -85,7 +116,7 @@ token = "some_token_from_another_request"
 url = "https://example.com/api/endpoint_that_needs_a_bearer_token"
 headers = ["Authorization": "Bearer #{token}", "Accept": "Application/json; Charset=utf-8"]
 options = [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 500]
-{:ok, response} = HTTPoison.get(url, headers, options)
+{:ok, response} = HTTPoison.get(url, headers, %{}, options)
 ```
 
 And the example below shows the use of the `:ssl` options for a post request to an api that requires a client certification.
@@ -93,7 +124,7 @@ And the example below shows the use of the `:ssl` options for a post request to 
 ```elixir
 url = "https://example.org/api/endpoint_that_needs_client_cert"
 options = [ssl: [certfile: "certs/client.crt"]]
-{:ok, response} = HTTPoison.post(url, [], options)
+{:ok, response} = HTTPoison.post(url, [], %{}, options)
 ```
 
 ### Wrapping `HTTPoison.Base`
@@ -115,13 +146,13 @@ defmodule GitHub do
     public_repos public_gists followers following created_at updated_at
   )
 
-  def process_url(url) do
+  def process_request_url(url) do
     "https://api.github.com" <> url
   end
 
   def process_response_body(body) do
     body
-    |> Poison.decode!
+    |> Poison.decode!()
     |> Map.take(@expected_fields)
     |> Enum.map(fn({k, v}) -> {String.to_atom(k), v} end)
   end
@@ -129,7 +160,7 @@ end
 ```
 
 ```elixir
-iex> GitHub.start
+iex> GitHub.start()
 iex> GitHub.get!("/users/myfreeweb").body[:public_repos]
 37
 ```
@@ -137,25 +168,28 @@ iex> GitHub.get!("/users/myfreeweb").body[:public_repos]
 It's possible to extend the functions listed below:
 
 ```elixir
-defp process_request_body(body), do: body
+def process_request_url(%Request{url: url}), do: url
 
-defp process_response_body(body), do: body
-
-defp process_request_headers(headers) when is_map(headers) do
+def process_request_headers(%Request{headers: headers}) when is_map(headers) do
   Enum.into(headers, [])
 end
+def process_request_headers(%Request{headers: headers}), do: headers
 
-defp process_request_headers(headers), do: headers
+def process_request_body(%Request{body: body}), do: body
 
-defp process_request_options(options), do: options
+def process_request_params(%Request{params: params}), do: params
 
-defp process_response_chunk(chunk), do: chunk
+def process_request_options(%Request{options: options}), do: options
 
-defp process_headers(headers), do: headers
+def process_response(%Response{} = response), do: {:ok, response}
 
-defp process_status_code(status_code), do: status_code
+def process_response_headers(headers), do: headers
 
-defp process_url(url), do: url
+def process_response_body(body), do: body
+
+def process_response_status_code(status_code), do: status_code
+
+def process_response_chunk(chunk), do: chunk
 ```
 
 ### Async requests
@@ -163,7 +197,7 @@ defp process_url(url), do: url
 HTTPoison now comes with async requests!
 
 ```elixir
-iex> HTTPoison.get! "https://github.com/", %{}, stream_to: self
+iex> HTTPoison.get!("https://github.com/", [], %{}, stream_to: self)
 %HTTPoison.AsyncResponse{id: #Reference<0.0.0.1654>}
 iex> flush
 %HTTPoison.AsyncStatus{code: 200, id: #Reference<0.0.0.1654>}
@@ -178,7 +212,7 @@ iex> flush
 HTTPoison allows you to send cookies:
 
 ```elixir
-iex> HTTPoison.get!("http://httparrot.herokuapp.com/cookies", %{}, hackney: [cookie: ["session=a933ec1dd923b874e691; logged_in=true"]])
+iex> HTTPoison.get!("http://httparrot.herokuapp.com/cookies", [], %{}, hackney: [cookie: ["session=a933ec1dd923b874e691; logged_in=true"]])
 %HTTPoison.Response{body: "{\n  \"cookies\": {\n    \"session\": \"a933ec1dd923b874e691\",\n    \"logged_in\": \"true\"\n  }\n}",
  headers: [{"Connection", "keep-alive"}, ...],
  status_code: 200}
@@ -205,7 +239,7 @@ Normally **hackney** [opens and closes connections on demand](https://github.com
 To use the default pool, you can just declare it as an option:
 
 ```elixir
-HTTPoison.get("httpbin.org/get", [], hackney: [pool: :default])
+HTTPoison.get("httpbin.org/get", [], %{}, hackney: [pool: :default])
 ```
 
 It is possible to use different pools for different purposes when a more fine grained allocation of resources is necessary.
@@ -215,8 +249,8 @@ It is possible to use different pools for different purposes when a more fine gr
 The easiest way is to just pass the name of the pool, and hackney will create it if it doesn't exist. Pools are independent from each other (they won't compete for connections) and are created with the default configuration.
 
 ```elixir
-HTTPoison.get("httpbin.org/get", [], hackney: [pool: :first_pool])
-HTTPoison.get("httpbin.org/get", [], hackney: [pool: :second_pool])
+HTTPoison.get("httpbin.org/get", [], %{}, hackney: [pool: :first_pool])
+HTTPoison.get("httpbin.org/get", [], %{}, hackney: [pool: :second_pool])
 ```
 
 #### Explicit pool creation
