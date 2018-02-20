@@ -1,5 +1,8 @@
 # Cartel HTTP Client
 
+ [![Hex.pm](https://img.shields.io/hexpm/v/cartel_http.svg)](https://hex.pm/packages/cartel_http)
+ [![Build Status](https://travis-ci.org/cartel/cartel.svg?branch=master)](https://travis-ci.org/cartel/cartel)
+
 HTTP client for Elixir, forked from [HTTPoison](https://github.com/edgurgel/httpoison)
 
 ## Note about broken ssl in Erlang 19
@@ -22,15 +25,15 @@ First, add Cartel to your `mix.exs` dependencies:
 
 ```elixir
 def deps do
-  [{:cartel, "~> 0.1"}]
+  [{:cartel_http, "~> 0.1"}]
 end
 ```
 
-and run `$ mix deps.get`. Add `:cartel` to your applications list if your Elixir version is 1.3 or lower:
+and run `$ mix deps.get`. Add `:cartel_http` to your applications list if your Elixir version is 1.3 or lower:
 
 ```elixir
 def application do
-  [applications: [:cartel]]
+  [applications: [:cartel_http]]
 end
 ```
 
@@ -104,7 +107,7 @@ end
 
 ### Options
 
-There are a number of supported options(*not to be confused with the HTTP options method*), documented [here](https://hexdocs.pm/cartel/Cartel.html#request/5), that can be added to your request. The example below shows the use of the `:ssl` and `:recv_timeout` options for a post request to an api that requires a bearer token. The `:ssl` option allows you to set options accepted by th [Erlang SSL module](http://erlang.org/doc/man/ssl.html), and `:recv_timeout` sets a timeout on receiving a response, the default is 5000ms.
+There are a number of supported options(*not to be confused with the HTTP options method*), documented [here](https://hexdocs.pm/cartel_http/Cartel.html#request/1), that can be added to your request. The example below shows the use of the `:ssl` and `:recv_timeout` options for a post request to an api that requires a bearer token. The `:ssl` option allows you to set options accepted by th [Erlang SSL module](http://erlang.org/doc/man/ssl.html), and `:recv_timeout` sets a timeout on receiving a response, the default is 5000ms.
 
 ```elixir
 token = "some_token_from_another_request"
