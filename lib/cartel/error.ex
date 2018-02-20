@@ -1,4 +1,4 @@
-defmodule HTTPoison.Error do
+defmodule Cartel.Error do
   defexception [reason: nil, id: nil]
 
   @type t :: %__MODULE__{id: reference | nil, reason: any}

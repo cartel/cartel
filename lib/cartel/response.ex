@@ -1,4 +1,4 @@
-defmodule HTTPoison.Response do
+defmodule Cartel.Response do
   defstruct [
     status_code: nil,
     body: nil,

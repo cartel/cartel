@@ -1,13 +1,13 @@
-defmodule HTTPoison.Base do
+defmodule Cartel.Base do
   @moduledoc """
-  Provides a default implementation for HTTPoison functions.
+  Provides a default implementation for Cartel functions.
 
   This module is meant to be `use`'d in custom modules in order to wrap the
-  functionalities provided by HTTPoison. For example, this is very useful to
-  build API clients around HTTPoison:
+  functionalities provided by Cartel. For example, this is very useful to
+  build API clients around Cartel:
 
       defmodule GitHub do
-        use HTTPoison.Base
+        use Cartel.Base
 
         @endpoint "https://api.github.com"
 
@@ -16,7 +16,7 @@ defmodule HTTPoison.Base do
         end
       end
 
-  The example above shows how the `GitHub` module can wrap HTTPoison
+  The example above shows how the `GitHub` module can wrap Cartel
   functionalities to work with the GitHub API in particular; this way, for
   example, all requests done through the `GitHub` module will be done to the
   GitHub API:
@@ -26,28 +26,28 @@ defmodule HTTPoison.Base do
 
   ## Overriding functions
 
-  `HTTPoison.Base` defines the following list of functions, all of which can be
+  `Cartel.Base` defines the following list of functions, all of which can be
   overridden (by redefining them). The following list also shows the typespecs
   for these functions and a short description.
 
       # Called in order to process the url passed to any request method before
       # actually issuing the request.
-      @spec process_request_url(HTTPoison.Request.t) :: binary
+      @spec process_request_url(Cartel.Request.t) :: binary
       def process_request_url(%Request{url: url})
 
       # Called to arbitrarily process the request body before sending it with the
       # request.
-      @spec process_request_body(HTTPoison.Request.t) :: binary
+      @spec process_request_body(Cartel.Request.t) :: binary
       def process_request_body(%Request{body: body})
 
       # Called to arbitrarily process the request headers before sending them
       # with the request.
-      @spec process_request_headers(HTTPoison.Request.t) :: [{binary, term}]
+      @spec process_request_headers(Cartel.Request.t) :: [{binary, term}]
       def process_request_headers(%Request{headers: headers})
 
       # Called to arbitrarily process the request options before sending them
       # with the request.
-      @spec process_request_options(HTTPoison.Request.t) :: keyword
+      @spec process_request_options(Cartel.Request.t) :: keyword
       def process_request_options(%Request{options: options})
 
       # Called to process the response headers before returning them to the
@@ -76,10 +76,10 @@ defmodule HTTPoison.Base do
 
   """
 
-  alias HTTPoison.Request
-  alias HTTPoison.Response
-  alias HTTPoison.AsyncResponse
-  alias HTTPoison.Error
+  alias Cartel.Request
+  alias Cartel.Response
+  alias Cartel.AsyncResponse
+  alias Cartel.Error
 
   @type headers :: [{atom, binary}] | [{binary, binary}] | %{binary => binary}
   @type body :: binary | {:form, [{atom, any}]} | {:file, binary}
@@ -87,20 +87,20 @@ defmodule HTTPoison.Base do
 
   defmacro __using__(_) do
     quote do
-      @type headers :: HTTPoison.Base.headers
-      @type body :: HTTPoison.Base.body
-      @type params :: HTTPoison.Base.params
+      @type headers :: Cartel.Base.headers
+      @type body :: Cartel.Base.body
+      @type params :: Cartel.Base.params
 
       @doc """
-      Starts HTTPoison and its dependencies.
+      Starts Cartel and its dependencies.
       """
-      def start, do: :application.ensure_all_started(:httpoison)
+      def start, do: :application.ensure_all_started(:cartel)
 
       ## Request processors
 
       @spec process_request_url(Request.t) :: String.t
       def process_request_url(%Request{url: url}) do
-        HTTPoison.Base.default_process_url(to_string(url))
+        Cartel.Base.default_process_url(to_string(url))
       end
 
       @spec process_request_headers(Request.t) :: headers
@@ -139,7 +139,7 @@ defmodule HTTPoison.Base do
       @doc false
       @spec transformer(pid) :: :ok
       def transformer(target) do
-        HTTPoison.Base.transformer(
+        Cartel.Base.transformer(
           __MODULE__,
           target,
           &process_response_status_code/1,
@@ -205,7 +205,7 @@ defmodule HTTPoison.Base do
           options: process_request_options(request)
         }
 
-        HTTPoison.Base.request(
+        Cartel.Base.request(
           __MODULE__,
           request,
           &process_response/1,
@@ -424,7 +424,7 @@ defmodule HTTPoison.Base do
       end
 
       @doc """
-      Requests the next message to be streamed for a given `HTTPoison.AsyncResponse`.
+      Requests the next message to be streamed for a given `Cartel.AsyncResponse`.
 
       See `request!/1` for more detailed information.
       """
@@ -445,24 +445,24 @@ defmodule HTTPoison.Base do
   def transformer(module, target, process_status_code, process_headers, process_chunk) do
     receive do
       {:hackney_response, id, {:status, code, _reason}} ->
-        send(target, %HTTPoison.AsyncStatus{id: id, code: process_status_code.(code)})
+        send(target, %Cartel.AsyncStatus{id: id, code: process_status_code.(code)})
         transformer(module, target, process_status_code, process_headers, process_chunk)
 
       {:hackney_response, id, {:headers, headers}} ->
-        send(target, %HTTPoison.AsyncHeaders{id: id, headers: process_headers.(headers)})
+        send(target, %Cartel.AsyncHeaders{id: id, headers: process_headers.(headers)})
         transformer(module, target, process_status_code, process_headers, process_chunk)
 
       {:hackney_response, id, :done} ->
-        send(target, %HTTPoison.AsyncEnd{id: id})
+        send(target, %Cartel.AsyncEnd{id: id})
 
       {:hackney_response, id, {:error, reason}} ->
         send(target, %Error{id: id, reason: reason})
 
       {:hackney_response, id, {redirect, to, headers}} when redirect in [:redirect, :see_other] ->
-        send(target, %HTTPoison.AsyncRedirect{id: id, to: to, headers: process_headers.(headers)})
+        send(target, %Cartel.AsyncRedirect{id: id, to: to, headers: process_headers.(headers)})
 
       {:hackney_response, id, chunk} ->
-        send(target, %HTTPoison.AsyncChunk{id: id, chunk: process_chunk.(chunk)})
+        send(target, %Cartel.AsyncChunk{id: id, chunk: process_chunk.(chunk)})
         transformer(module, target, process_status_code, process_headers, process_chunk)
     end
   end
@@ -549,7 +549,7 @@ defmodule HTTPoison.Base do
         end
 
       {:ok, id} ->
-        {:ok, %HTTPoison.AsyncResponse{id: id}}
+        {:ok, %Cartel.AsyncResponse{id: id}}
 
       {:error, reason} ->
         {:error, %Error{reason: reason}}

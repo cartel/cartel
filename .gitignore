@@ -1,10 +1,12 @@
+/.elixir_ls
+/.idea
 /_build
-/ebin
 /deps
 /doc
-erl_crash.dump
+/ebin
+
 *.ez
-mix.lock
-/.idea
 *.iml
-/.elixir_ls
+
+erl_crash.dump
+mix.lock

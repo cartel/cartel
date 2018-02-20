@@ -1,4 +1,4 @@
-defmodule HTTPoison.Request do
+defmodule Cartel.Request do
   @enforce_keys [:url]
   defstruct [
     method: :get,
@@ -10,8 +10,8 @@ defmodule HTTPoison.Request do
   ]
 
   @type method :: :get | :post | :put | :patch | :delete | :options | :head
-  @type headers :: HTTPoison.Base.headers
-  @type body :: HTTPoison.Base.body
+  @type headers :: Cartel.Base.headers
+  @type body :: Cartel.Base.body
 
   @type t :: %__MODULE__{
     method: method,

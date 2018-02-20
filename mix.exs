@@ -1,4 +1,4 @@
-defmodule HTTPoison.Mixfile do
+defmodule Cartel.Mixfile do
   use Mix.Project
 
   @description """
@@ -6,14 +6,16 @@ defmodule HTTPoison.Mixfile do
   """
 
   def project do
-    [ app: :httpoison,
-      version: "1.1.0",
-      elixir: "~> 1.2",
-      name: "HTTPoison",
+    [
+      app: :cartel,
+      version: "0.1.0",
+      elixir: "~> 1.5",
+      name: "Cartel",
       description: @description,
       package: package(),
       deps: deps(),
-      source_url: "https://github.com/edgurgel/httpoison" ]
+      source_url: "https://github.com/cartel/cartel"
+    ]
   end
 
   def application do
@@ -32,8 +34,10 @@ defmodule HTTPoison.Mixfile do
   end
 
   defp package do
-    [ maintainers: ["Eduardo Gurgel Pinho"],
+    [
+      maintainers: ["Ryan Winchester"],
       licenses: ["MIT"],
-      links: %{"Github" => "https://github.com/edgurgel/httpoison"} ]
+      links: %{"Github" => "https://github.com/cartel/cartel"},
+    ]
   end
 end

@@ -1,14 +1,14 @@
-defmodule HTTPoisonBaseTest do
+defmodule CartelBaseTest do
   use ExUnit.Case
   import :meck
 
   defmodule Example do
-    use HTTPoison.Base
-    def process_request_url(%HTTPoison.Request{url: url}), do: "http://" <> url
-    def process_request_body(%HTTPoison.Request{body: body}), do: {:req_body, body}
-    def process_request_headers(%HTTPoison.Request{headers: headers}), do: {:req_headers, headers}
-    def process_request_params(%HTTPoison.Request{params: params}), do: params
-    def process_request_options(%HTTPoison.Request{options: options}), do: Keyword.put(options, :timeout, 10)
+    use Cartel.Base
+    def process_request_url(%Cartel.Request{url: url}), do: "http://" <> url
+    def process_request_body(%Cartel.Request{body: body}), do: {:req_body, body}
+    def process_request_headers(%Cartel.Request{headers: headers}), do: {:req_headers, headers}
+    def process_request_params(%Cartel.Request{params: params}), do: params
+    def process_request_options(%Cartel.Request{options: options}), do: Keyword.put(options, :timeout, 10)
     def process_response(response), do: {:ok, {:resp, response}}
     def process_response_body(body), do: {:resp_body, body}
     def process_response_headers(headers), do: {:resp_headers, headers}
@@ -16,12 +16,12 @@ defmodule HTTPoisonBaseTest do
   end
 
   defmodule ExampleDefp do
-    use HTTPoison.Base
-    defp process_request_url(%HTTPoison.Request{url: url}), do: "http://" <> url
-    defp process_request_body(%HTTPoison.Request{body: body}), do: {:req_body, body}
-    defp process_request_headers(%HTTPoison.Request{headers: headers}), do: {:req_headers, headers}
-    defp process_request_params(%HTTPoison.Request{params: params}), do: params
-    defp process_request_options(%HTTPoison.Request{options: options}), do: Keyword.put(options, :timeout, 10)
+    use Cartel.Base
+    defp process_request_url(%Cartel.Request{url: url}), do: "http://" <> url
+    defp process_request_body(%Cartel.Request{body: body}), do: {:req_body, body}
+    defp process_request_headers(%Cartel.Request{headers: headers}), do: {:req_headers, headers}
+    defp process_request_params(%Cartel.Request{params: params}), do: params
+    defp process_request_options(%Cartel.Request{options: options}), do: Keyword.put(options, :timeout, 10)
     defp process_response(response), do: {:ok, {:resp, response}}
     defp process_response_body(body), do: {:resp_body, body}
     defp process_response_headers(headers), do: {:resp_headers, headers}
@@ -29,19 +29,19 @@ defmodule HTTPoisonBaseTest do
   end
 
   defmodule ExampleParams do
-    use HTTPoison.Base
-    def process_request_url(%HTTPoison.Request{url: url}), do: "http://" <> url
-    def process_request_params(%HTTPoison.Request{params: params}) do
+    use Cartel.Base
+    def process_request_url(%Cartel.Request{url: url}), do: "http://" <> url
+    def process_request_params(%Cartel.Request{params: params}) do
       Map.merge(params, %{key: "fizz"})
     end
   end
 
   defmodule ExampleRetry do
-    use HTTPoison.Base
-    def process_request_options(%HTTPoison.Request{options: options}) do
+    use Cartel.Base
+    def process_request_options(%Cartel.Request{options: options}) do
       Keyword.update(options, :try_count, 1, &(&1 + 1))
     end
-    def process_response(%HTTPoison.Response{request: request} = response) do
+    def process_response(%Cartel.Response{request: request} = response) do
       tries = Keyword.get(request.options, :try_count, 1)
       max_tries = Keyword.get(request.options, :max_tries, false)
       case response do
@@ -52,7 +52,7 @@ defmodule HTTPoisonBaseTest do
     def retry(request, false, _), do: request(request)
     def retry(request, max_tries, tries) when tries < max_tries, do: request(request)
     def retry(_, max_tries, tries) do
-      {:error, %HTTPoison.Error{reason: "too many tries [#{tries} of #{max_tries}]"}}
+      {:error, %Cartel.Error{reason: "too many tries [#{tries} of #{max_tries}]"}}
     end
   end
 
@@ -64,7 +64,7 @@ defmodule HTTPoisonBaseTest do
 
   test "request body using Example" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: {:req_headers, []},
@@ -82,7 +82,7 @@ defmodule HTTPoisonBaseTest do
 
     assert Example.post!("localhost", "body") ==
       {:resp,
-        %HTTPoison.Response{
+        %Cartel.Response{
           status_code: {:resp_status_code, 200},
           headers: {:resp_headers, "headers"},
           body: {:resp_body, "response"},
@@ -95,7 +95,7 @@ defmodule HTTPoisonBaseTest do
 
   test "request body using ExampleDefp" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: {:req_headers, []},
@@ -113,7 +113,7 @@ defmodule HTTPoisonBaseTest do
 
     assert ExampleDefp.post!("localhost", "body") ==
       {:resp,
-        %HTTPoison.Response{
+        %Cartel.Response{
           status_code: {:resp_status_code, 200},
           headers: {:resp_headers, "headers"},
           body: {:resp_body, "response"},
@@ -126,7 +126,7 @@ defmodule HTTPoisonBaseTest do
 
   test "request body using params example" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :get,
         url: "http://localhost?foo=bar&key=fizz",
         headers: [],
@@ -143,7 +143,7 @@ defmodule HTTPoisonBaseTest do
     expect(:hackney, :body, 1, {:ok, "response"})
 
     assert ExampleParams.get!("localhost", [], %{foo: "bar"}) ==
-      %HTTPoison.Response{
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -155,7 +155,7 @@ defmodule HTTPoisonBaseTest do
 
   test "request body with retries" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :get,
         url: "http://localhost",
         headers: [],
@@ -176,7 +176,7 @@ defmodule HTTPoisonBaseTest do
     expect(:hackney, :body, 1, {:ok, "response"})
 
     assert ExampleRetry.get!("localhost", [], %{}, max_tries: 3) ==
-      %HTTPoison.Response{
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -188,7 +188,7 @@ defmodule HTTPoisonBaseTest do
 
   test "request body retries too many times raises error" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :get,
         url: "http://localhost",
         headers: [],
@@ -204,7 +204,7 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert_raise HTTPoison.Error, "\"too many tries [3 of 3]\"", fn ->
+    assert_raise Cartel.Error, "\"too many tries [3 of 3]\"", fn ->
       ExampleRetry.get!("localhost", [], %{}, max_tries: 3)
     end
 
@@ -215,18 +215,18 @@ defmodule HTTPoisonBaseTest do
     reason = {:closed, "Something happened"}
     expect(:hackney, :request, 5, {:error, reason})
 
-    assert_raise HTTPoison.Error, "{:closed, \"Something happened\"}", fn ->
-      HTTPoison.get!("http://localhost")
+    assert_raise Cartel.Error, "{:closed, \"Something happened\"}", fn ->
+      Cartel.get!("http://localhost")
     end
 
-    assert HTTPoison.get("http://localhost") == {:error, %HTTPoison.Error{reason: reason}}
+    assert Cartel.get("http://localhost") == {:error, %Cartel.Error{reason: reason}}
 
     assert validate :hackney
   end
 
   test "passing connect_timeout option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -242,8 +242,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, timeout: 12345) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, timeout: 12345) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -255,7 +255,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing recv_timeout option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -271,8 +271,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, recv_timeout: 12345) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, recv_timeout: 12345) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -284,7 +284,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing proxy option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -300,8 +300,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, proxy: "proxy") ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, proxy: "proxy") ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -313,7 +313,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing proxy option with proxy_auth" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -329,8 +329,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, [proxy: "proxy", proxy_auth: {"username", "password"}]) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, [proxy: "proxy", proxy_auth: {"username", "password"}]) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -342,7 +342,7 @@ defmodule HTTPoisonBaseTest do
 
   test "having http_proxy env variable set on http requests" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -360,8 +360,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body") ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body") ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -373,7 +373,7 @@ defmodule HTTPoisonBaseTest do
 
   test "having https_proxy env variable set on https requests" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "https://localhost",
         headers: [],
@@ -391,8 +391,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("https://localhost", "body") ==
-      %HTTPoison.Response{
+    assert Cartel.post!("https://localhost", "body") ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -404,7 +404,7 @@ defmodule HTTPoisonBaseTest do
 
   test "having https_proxy env variable set on http requests" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -426,8 +426,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body") ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body") ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -439,7 +439,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing ssl option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -455,8 +455,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, ssl: [certfile: "certs/client.crt"]) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, ssl: [certfile: "certs/client.crt"]) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -468,7 +468,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing follow_redirect option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -484,8 +484,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, follow_redirect: true) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, follow_redirect: true) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
@@ -497,7 +497,7 @@ defmodule HTTPoisonBaseTest do
 
   test "passing max_redirect option" do
     req =
-      %HTTPoison.Request{
+      %Cartel.Request{
         method: :post,
         url: "http://localhost",
         headers: [],
@@ -513,8 +513,8 @@ defmodule HTTPoisonBaseTest do
 
     expect(:hackney, :body, 1, {:ok, "response"})
 
-    assert HTTPoison.post!("localhost", "body", [], %{}, max_redirect: 2) ==
-      %HTTPoison.Response{
+    assert Cartel.post!("localhost", "body", [], %{}, max_redirect: 2) ==
+      %Cartel.Response{
         status_code: 200,
         headers: "headers",
         body: "response",
