@@ -9,7 +9,7 @@ defmodule Cartel.Mixfile do
     [
       app: :cartel_http,
       version: "0.1.0",
-      elixir: "~> 1.5",
+      elixir: "~> 1.4",
       name: "Cartel",
       description: @description,
       package: package(),
