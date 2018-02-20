@@ -2,12 +2,12 @@ defmodule Cartel.Mixfile do
   use Mix.Project
 
   @description """
-    Yet Another HTTP client for Elixir powered by hackney
+    Elixir HTTP client forked from HTTPoison
   """
 
   def project do
     [
-      app: :cartel,
+      app: :cartel_http,
       version: "0.1.0",
       elixir: "~> 1.5",
       name: "Cartel",
