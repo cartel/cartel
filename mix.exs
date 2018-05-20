@@ -8,8 +8,8 @@ defmodule Cartel.Mixfile do
   def project do
     [
       app: :cartel_http,
-      version: "0.1.0",
-      elixir: "~> 1.4",
+      version: "0.1.1",
+      elixir: "~> 1.5",
       name: "Cartel",
       description: @description,
       package: package(),
@@ -25,6 +25,7 @@ defmodule Cartel.Mixfile do
   defp deps do
     [
       {:hackney, "~> 1.8"},
+
       {:exjsx, "~> 3.1", only: :test},
       {:httparrot, "~> 1.0", only: :test},
       {:meck, "~> 0.8.2", only: :test},
@@ -37,7 +38,7 @@ defmodule Cartel.Mixfile do
     [
       maintainers: ["Ryan Winchester"],
       licenses: ["MIT"],
-      links: %{"Github" => "https://github.com/cartel/cartel"},
+      links: %{"Github" => "https://github.com/ryanwinchester/cartel"},
     ]
   end
 end
